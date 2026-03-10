@@ -3,11 +3,11 @@ const http = require('http');
 const express = require('express');
 const crypto = require('crypto');
 
-// Serve static files from public directory
-app.use(express.static('public'));
-
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Serve static files from public directory
+app.use(express.static('public'));
 
 // Create HTTP server
 const server = http.createServer(app);
