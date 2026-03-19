@@ -113,6 +113,21 @@
       </svg>
     );
 
+    const Menu = ({ size = 24 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    );
+
+    const X = ({ size = 24 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    );
+
     const PixelMessenger = () => {
       const [username, setUsername] = useState('');
       const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -127,6 +142,7 @@
       const [notification, setNotification] = useState(null);
       const [unreadCounts, setUnreadCounts] = useState({});
       const [groupUnread, setGroupUnread] = useState(0);
+      const [showSidebar, setShowSidebar] = useState(false);
       const [errorMessage, setErrorMessage] = useState('');
       const messagesEndRef = useRef(null);
 
@@ -314,6 +330,7 @@
       const selectChat = (user) => {
         setActiveChat(user);
         setIsGroupChat(false);
+        setShowSidebar(false); // Close sidebar on mobile
         setUnreadCounts(prev => ({
           ...prev,
           [user]: 0
@@ -331,6 +348,7 @@
         setActiveChat(null);
         setIsGroupChat(true);
         setGroupUnread(0);
+        setShowSidebar(false); // Close sidebar on mobile
       };
 
       const handleLogout = () => {
@@ -423,6 +441,12 @@
             <div className="bg-gradient-to-r from-[#ff6b9d] to-[#ffa94d] p-4 mb-4 border-4 border-black shadow-[8px_8px_0_rgba(0,0,0,0.3)] rounded-xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setShowSidebar(!showSidebar)}
+                    className="lg:hidden p-2 bg-[#ffe066] border-2 border-black hover:bg-[#ffd633] pixel-button rounded"
+                  >
+                    {showSidebar ? <X size={20} /> : <Menu size={20} />}
+                  </button>
                   <div className="w-12 h-12 bg-[#ffe066] border-4 border-black rounded flex items-center justify-center text-2xl">
                     💬
                   </div>
@@ -445,8 +469,22 @@
               </div>
             </div>
 
-            <div className="flex gap-4 flex-1 min-h-0">
-              <div className="w-64 bg-gradient-to-b from-[#ff6b9d] to-[#ff8fab] border-4 border-black shadow-[8px_8px_0_rgba(0,0,0,0.3)] rounded-xl flex flex-col">
+            <div className="flex gap-4 flex-1 min-h-0 relative">
+              {/* Mobile Sidebar Overlay */}
+              {showSidebar && (
+                <div 
+                  className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                  onClick={() => setShowSidebar(false)}
+                ></div>
+              )}
+              
+              {/* Sidebar */}
+              <div className={`
+                w-64 bg-gradient-to-b from-[#ff6b9d] to-[#ff8fab] border-4 border-black 
+                shadow-[8px_8px_0_rgba(0,0,0,0.3)] rounded-xl flex flex-col
+                lg:relative lg:translate-x-0 lg:block
+                ${showSidebar ? 'fixed left-4 top-20 bottom-4 z-50' : 'hidden lg:flex'}
+              `}>
                 <div className="bg-[#ffa94d] p-4 border-b-4 border-black rounded-t-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-[#ffe066] border-4 border-black rounded flex items-center justify-center text-2xl">
