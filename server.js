@@ -16,12 +16,40 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 // Data structures
-const clients = new Map(); // username -> { ws, sessionId, isAdmin }
+const clients = new Map(); // username -> { ws, sessionId, isAdmin, flag }
 const sessions = new Map(); // sessionId -> username
 const messageHistory = []; // store all direct messages
 const groupChatHistory = []; // store group chat messages
+const customRooms = new Map(); // roomId -> { name, creator, members: Set, messages: [], created: timestamp }
 const bannedUsers = new Set(); // banned usernames
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // Set via Railway env variable
+
+// Helper function to generate room ID
+function generateRoomId() {
+  return 'room_' + crypto.randomBytes(8).toString('hex');
+}
+
+// Helper function to broadcast room list
+function broadcastRooms() {
+  const roomsList = Array.from(customRooms.entries()).map(([id, room]) => ({
+    id,
+    name: room.name,
+    creator: room.creator,
+    memberCount: room.members.size,
+    members: Array.from(room.members)
+  }));
+  
+  const message = JSON.stringify({
+    type: 'roomsList',
+    rooms: roomsList
+  });
+  
+  clients.forEach((clientData) => {
+    if (clientData.ws.readyState === WebSocket.OPEN) {
+      clientData.ws.send(message);
+    }
+  });
+}
 
 // Health check endpoint for Railway
 app.get('/', (req, res) => {
@@ -53,7 +81,10 @@ function broadcast(message, excludeUsername = null) {
 }
 
 function broadcastUsers() {
-  const users = Array.from(clients.keys());
+  const users = Array.from(clients.entries()).map(([username, data]) => ({
+    username,
+    flag: data.flag || ''
+  }));
   const message = {
     type: 'users',
     users: users
@@ -74,6 +105,7 @@ wss.on('connection', (ws) => {
         case 'login':
           username = message.username;
           const isAdmin = message.password === ADMIN_PASSWORD;
+          const flag = message.flag || '';
           
           // Check if banned
           if (bannedUsers.has(username)) {
@@ -98,8 +130,8 @@ wss.on('connection', (ws) => {
           sessionId = generateSessionId();
           sessions.set(sessionId, username);
           
-          // Store client
-          clients.set(username, { ws, sessionId, isAdmin });
+          // Store client with flag
+          clients.set(username, { ws, sessionId, isAdmin, flag });
           console.log(`${username} connected ${isAdmin ? '(ADMIN)' : ''}`);
 
           // Send session ID to client
@@ -117,6 +149,9 @@ wss.on('connection', (ws) => {
 
           // Send list of online users to all clients
           broadcastUsers();
+          
+          // Send rooms list to all clients
+          broadcastRooms();
           break;
 
         case 'groupMessage':
@@ -178,6 +213,126 @@ wss.on('connection', (ws) => {
             type: 'history',
             messages: history
           }));
+          break;
+
+        // Custom Room handlers
+        case 'createRoom':
+          const roomId = generateRoomId();
+          const newRoom = {
+            name: message.roomName,
+            creator: username,
+            members: new Set([username, ...message.invitedUsers]),
+            messages: [],
+            created: Date.now()
+          };
+          
+          customRooms.set(roomId, newRoom);
+          console.log(`Room "${message.roomName}" created by ${username}`);
+          
+          // Notify creator
+          ws.send(JSON.stringify({
+            type: 'roomCreated',
+            roomId: roomId,
+            room: {
+              id: roomId,
+              name: newRoom.name,
+              creator: newRoom.creator,
+              members: Array.from(newRoom.members)
+            }
+          }));
+          
+          // Broadcast updated room list
+          broadcastRooms();
+          break;
+
+        case 'joinRoom':
+          const joinRoom = customRooms.get(message.roomId);
+          if (joinRoom) {
+            joinRoom.members.add(username);
+            
+            // Send room history to joining user
+            ws.send(JSON.stringify({
+              type: 'roomHistory',
+              roomId: message.roomId,
+              messages: joinRoom.messages
+            }));
+            
+            broadcastRooms();
+          }
+          break;
+
+        case 'leaveRoom':
+          const leaveRoom = customRooms.get(message.roomId);
+          if (leaveRoom) {
+            leaveRoom.members.delete(username);
+            
+            // Delete room if empty
+            if (leaveRoom.members.size === 0) {
+              customRooms.delete(message.roomId);
+              console.log(`Room "${leaveRoom.name}" auto-deleted (empty)`);
+            }
+            
+            broadcastRooms();
+          }
+          break;
+
+        case 'roomMessage':
+          const room = customRooms.get(message.roomId);
+          if (room && room.members.has(username)) {
+            const roomMsg = {
+              type: 'roomMessage',
+              roomId: message.roomId,
+              from: username,
+              text: message.text,
+              time: new Date().toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+              }),
+              timestamp: Date.now()
+            };
+            
+            // Store in room history
+            room.messages.push(roomMsg);
+            
+            // Send to all room members
+            room.members.forEach(memberName => {
+              const memberData = clients.get(memberName);
+              if (memberData && memberData.ws.readyState === WebSocket.OPEN) {
+                memberData.ws.send(JSON.stringify(roomMsg));
+              }
+            });
+          }
+          break;
+
+        case 'deleteRoom':
+          const delAdminData = clients.get(username);
+          if (!delAdminData || !delAdminData.isAdmin) {
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Admin privileges required'
+            }));
+            return;
+          }
+          
+          const roomToDelete = customRooms.get(message.roomId);
+          if (roomToDelete) {
+            // Notify all members
+            roomToDelete.members.forEach(memberName => {
+              const memberData = clients.get(memberName);
+              if (memberData && memberData.ws.readyState === WebSocket.OPEN) {
+                memberData.ws.send(JSON.stringify({
+                  type: 'roomDeleted',
+                  roomId: message.roomId,
+                  message: `Room "${roomToDelete.name}" was deleted by admin`
+                }));
+              }
+            });
+            
+            customRooms.delete(message.roomId);
+            console.log(`Room "${roomToDelete.name}" deleted by admin ${username}`);
+            broadcastRooms();
+          }
           break;
 
         // Admin actions
