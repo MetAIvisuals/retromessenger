@@ -558,9 +558,12 @@
                                 msg.from === username ? 'bg-[#ffe066]' : 'bg-[#ffa94d]'
                               }`}
                             >
-                              <div className="text-[10px] font-bold text-black mb-1 pixel-font">{msg.from}</div>
+                              <div className="text-[10px] font-bold text-black mb-2 pixel-font flex items-center gap-2">
+                                <span>{msg.from}</span>
+                                <span className="text-black/50">•</span>
+                                <span className="text-[8px] text-black/70">{msg.time}</span>
+                              </div>
                               <div className="text-sm text-black break-words">{msg.text}</div>
-                              <div className="text-[8px] text-black/70 mt-1">{msg.time}</div>
                             </div>
                           </div>
                         ))

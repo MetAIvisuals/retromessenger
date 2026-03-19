@@ -713,17 +713,18 @@
                                   : 'bg-gray-900 border-cyan-400 shadow-[4px_4px_0_rgba(0,255,255,0.5)]'
                               }`}
                             >
-                              <div className={`text-[10px] font-bold mb-1 pixel-font ${
+                              <div className={`text-[10px] font-bold mb-2 pixel-font flex items-center gap-2 ${
                                 msg.from === username ? 'text-lime-400 glow-green' : 'text-cyan-400 glow'
                               }`}>
-                                &gt; {msg.from}
+                                <span>&gt; {msg.from}</span>
+                                <span className="text-gray-500">•</span>
+                                <span className="text-[8px] text-gray-500">{msg.time}</span>
                               </div>
                               <div className={`text-sm break-words ${
                                 msg.from === username ? 'text-lime-400' : 'text-cyan-400'
                               }`}>
                                 {msg.text}
                               </div>
-                              <div className="text-[8px] text-gray-500 mt-1">[{msg.time}]</div>
                             </div>
                           </div>
                         ))
