@@ -81,10 +81,7 @@ function broadcast(message, excludeUsername = null) {
 }
 
 function broadcastUsers() {
-  const users = Array.from(clients.entries()).map(([username, data]) => ({
-    username,
-    flag: data.flag || ''
-  }));
+  const users = Array.from(clients.keys());
   const message = {
     type: 'users',
     users: users
