@@ -153,6 +153,18 @@
       </svg>
     );
 
+    const ChevronLeft = ({ size = 20 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    );
+
+    const ChevronRight = ({ size = 20 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    );
+
     const X = ({ size = 24 }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -163,6 +175,7 @@
     const PixelMessenger = () => {
       const [username, setUsername] = useState('');
       const [password, setPassword] = useState('');
+      const [selectedFlag, setSelectedFlag] = useState('🌍');
       const [isLoggedIn, setIsLoggedIn] = useState(false);
       const [activeChat, setActiveChat] = useState(null);
       const [isGroupChat, setIsGroupChat] = useState(true);
@@ -178,7 +191,13 @@
       const [isAdmin, setIsAdmin] = useState(false);
       const [showAdminPanel, setShowAdminPanel] = useState(false);
       const [adminTarget, setAdminTarget] = useState('');
-      const [showSidebar, setShowSidebar] = useState(false);
+      const [showSidebar, setShowSidebar] = useState(true);
+      const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+      const [showCreateRoom, setShowCreateRoom] = useState(false);
+      const [customRooms, setCustomRooms] = useState([]);
+      const [activeRoom, setActiveRoom] = useState(null);
+      const [roomMessages, setRoomMessages] = useState({});
+      const [newRoomName, setNewRoomName] = useState('');
       const [errorMessage, setErrorMessage] = useState('');
       const messagesEndRef = useRef(null);
 
@@ -312,6 +331,56 @@
                 window.location.reload();
                 break;
                 
+              case 'roomsList':
+                setCustomRooms(data.rooms || []);
+                break;
+                
+              case 'roomCreated':
+                setCustomRooms(prev => [...prev, data.room]);
+                setActiveRoom(data.room.id);
+                setIsGroupChat(false);
+                setActiveChat(null);
+                setShowCreateRoom(false);
+                setNewRoomName('');
+                break;
+                
+              case 'roomMessage':
+                setRoomMessages(prev => ({
+                  ...prev,
+                  [data.roomId]: [...(prev[data.roomId] || []), data]
+                }));
+                
+                if (data.from !== username && data.roomId !== activeRoom) {
+                  try {
+                    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGJ0fPTgjMGHm7A7+OZSA0PVqzn77BdGAw+mdrxxnEiBSuBzvLaiTcIGWi77eefTRAMUKfj8LZjHAY4ktfyy3ksBSR3yPDdkEAKFF606eunVRQKRp/g8r5sIQUxidHz04IzBh5uwO/jmUgND1as5++wXRgMPpnZ8cd');
+                    audio.volume = 0.3;
+                    audio.play().catch(() => {});
+                  } catch (e) {}
+                  
+                  setNotification({
+                    from: `${data.from} in ${data.roomName}`,
+                    text: data.text,
+                    time: Date.now()
+                  });
+                  setTimeout(() => setNotification(null), 3000);
+                }
+                break;
+                
+              case 'roomHistory':
+                setRoomMessages(prev => ({
+                  ...prev,
+                  [data.roomId]: data.messages
+                }));
+                break;
+                
+              case 'roomDeleted':
+                setCustomRooms(prev => prev.filter(r => r.id !== data.roomId));
+                if (activeRoom === data.roomId) {
+                  setActiveRoom(null);
+                  setIsGroupChat(true);
+                }
+                break;
+                
               case 'adminAction':
                 setNotification({
                   from: '[ADMIN]',
@@ -351,11 +420,25 @@
         }
       };
 
+      // Emoji picker
+      const emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬', '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '💪', '🦾', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '🔥', '✨', '💫', '⭐', '🌟', '💯', '✅', '❌', '⚠️', '🎉', '🎊', '🎁', '🎈', '🏆', '🥇', '🥈', '🥉', '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣'];
+      
+      const insertEmoji = (emoji) => {
+        setMessage(prev => prev + emoji);
+        setShowEmojiPicker(false);
+      };
+
       const sendMessage = () => {
         if (message.trim() && ws) {
           if (isGroupChat) {
             ws.send(JSON.stringify({
               type: 'groupMessage',
+              text: message
+            }));
+          } else if (activeRoom) {
+            ws.send(JSON.stringify({
+              type: 'roomMessage',
+              roomId: activeRoom,
               text: message
             }));
           } else if (activeChat) {
@@ -369,6 +452,52 @@
         }
       };
 
+      const createRoom = () => {
+        if (newRoomName.trim() && ws) {
+          ws.send(JSON.stringify({
+            type: 'createRoom',
+            roomName: newRoomName.trim(),
+            invitedUsers: []
+          }));
+        }
+      };
+
+      const joinRoom = (roomId) => {
+        setActiveRoom(roomId);
+        setIsGroupChat(false);
+        setActiveChat(null);
+        
+        if (ws) {
+          ws.send(JSON.stringify({
+            type: 'joinRoom',
+            roomId: roomId
+          }));
+        }
+      };
+
+      const leaveRoom = (roomId) => {
+        if (ws) {
+          ws.send(JSON.stringify({
+            type: 'leaveRoom',
+            roomId: roomId
+          }));
+        }
+        
+        if (activeRoom === roomId) {
+          setActiveRoom(null);
+          setIsGroupChat(true);
+        }
+      };
+
+      const deleteRoom = (roomId) => {
+        if (ws && confirm('Delete this room? This cannot be undone.')) {
+          ws.send(JSON.stringify({
+            type: 'deleteRoom',
+            roomId: roomId
+          }));
+        }
+      };
+
       const handleKeyPress = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
@@ -379,7 +508,6 @@
       const selectChat = (user) => {
         setActiveChat(user);
         setIsGroupChat(false);
-        setShowSidebar(false); // Close sidebar on mobile
         setUnreadCounts(prev => ({
           ...prev,
           [user]: 0
@@ -397,7 +525,6 @@
         setActiveChat(null);
         setIsGroupChat(true);
         setGroupUnread(0);
-        setShowSidebar(false); // Close sidebar on mobile
       };
 
       const adminKick = () => {
@@ -440,10 +567,14 @@
         setOnlineUsers([]);
       };
 
-      const currentMessages = isGroupChat ? groupMessages : messages.filter(msg => 
-        (msg.from === activeChat && msg.to === username) ||
-        (msg.from === username && msg.to === activeChat)
-      );
+      const currentMessages = isGroupChat 
+        ? groupMessages 
+        : activeRoom 
+          ? (roomMessages[activeRoom] || [])
+          : messages.filter(msg => 
+              (msg.from === activeChat && msg.to === username) ||
+              (msg.from === username && msg.to === activeChat)
+            );
 
       if (!isLoggedIn) {
         return (
@@ -536,12 +667,6 @@
             <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-4 mb-4 border-4 border-cyan-400 shadow-[8px_8px_0_rgba(0,255,255,0.5)] rounded-xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setShowSidebar(!showSidebar)}
-                    className="lg:hidden p-2 bg-black border-2 border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black pixel-button rounded"
-                  >
-                    {showSidebar ? <X size={20} /> : <Menu size={20} />}
-                  </button>
                   <div className="w-12 h-12 bg-black border-4 border-lime-400 rounded flex items-center justify-center text-2xl">
                     ⚡
                   </div>
@@ -610,22 +735,18 @@
               </div>
             )}
 
-            <div className="flex gap-4 flex-1 min-h-0 relative">
-              {/* Mobile Sidebar Overlay */}
-              {showSidebar && (
-                <div 
-                  className="lg:hidden fixed inset-0 bg-black/80 z-40"
-                  onClick={() => setShowSidebar(false)}
-                ></div>
-              )}
-              
-              {/* Sidebar */}
+            <div className="flex flex-1 min-h-0 overflow-hidden relative">
+              {/* Sidebar - Always visible on desktop, toggle on mobile */}
               <div className={`
-                w-64 bg-gradient-to-b from-gray-900 to-black border-4 border-cyan-400 
+                transition-transform duration-300 ease-in-out
+                bg-gradient-to-b from-gray-900 to-black border-4 border-cyan-400 
                 shadow-[8px_8px_0_rgba(0,255,255,0.5)] rounded-xl flex flex-col
-                lg:relative lg:translate-x-0 lg:block
-                ${showSidebar ? 'fixed left-4 top-20 bottom-4 z-50' : 'hidden lg:flex'}
+                w-64 flex-shrink-0
+                lg:relative lg:translate-x-0
+                fixed left-0 top-0 bottom-0 z-40 lg:rounded-xl rounded-none
+                ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
               `}>
+                <div className="flex flex-col h-full overflow-hidden pt-20 lg:pt-0">
                 <div className="bg-black p-4 border-b-4 border-cyan-400 rounded-t-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-black border-4 border-lime-400 rounded flex items-center justify-center text-2xl">
@@ -666,8 +787,66 @@
                       </div>
                     </div>
                   </button>
+                  
+                  {/* Custom Rooms */}
+                  {customRooms.length > 0 && (
+                    <div className="mt-3">
+                      <div className="pixel-font text-[10px] text-lime-400 mb-2 px-2 glow-green">
+                        &gt; ROOMS:
+                      </div>
+                      {customRooms.map((room) => (
+                        <div key={room.id} className="mb-2">
+                          <button
+                            onClick={() => joinRoom(room.id)}
+                            className={`w-full p-3 border-4 transition-all pixel-button rounded-lg ${
+                              activeRoom === room.id 
+                                ? 'bg-lime-400 border-lime-400 text-black' 
+                                : 'bg-black border-purple-400 text-purple-400 hover:border-lime-400 hover:text-lime-400'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="text-2xl">🏠</div>
+                              <div className="flex-1 text-left">
+                                <div className="text-[10px] pixel-font break-all">{room.name}</div>
+                                <div className="text-[8px] mt-1">{room.memberCount} members</div>
+                              </div>
+                            </div>
+                          </button>
+                          <div className="flex gap-1 mt-1">
+                            {activeRoom === room.id && (
+                              <button
+                                onClick={() => leaveRoom(room.id)}
+                                className="flex-1 px-3 py-1 bg-red-500/20 border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white pixel-button rounded text-[8px]"
+                              >
+                                [LEAVE]
+                              </button>
+                            )}
+                            {isAdmin && (
+                              <button
+                                onClick={() => deleteRoom(room.id)}
+                                className="flex-1 px-3 py-1 bg-red-500/20 border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white pixel-button rounded text-[8px]"
+                              >
+                                [DELETE]
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Create Room Button */}
+                  <button
+                    onClick={() => setShowCreateRoom(true)}
+                    className="w-full p-3 mt-3 border-4 border-dashed border-cyan-400 text-cyan-400 hover:border-lime-400 hover:text-lime-400 pixel-button rounded-lg transition-all"
+                  >
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="text-2xl">➕</div>
+                      <div className="text-[10px] pixel-font">[CREATE_ROOM]</div>
+                    </div>
+                  </button>
 
-                  <div className="pixel-font text-[10px] text-cyan-400 mb-2 px-2 glow">
+                  <div className="pixel-font text-[10px] text-cyan-400 mb-2 mt-4 px-2 glow">
                     &gt; ONLINE_USERS:
                   </div>
                   {onlineUsers.length === 0 ? (
@@ -707,27 +886,57 @@
                   )}
                 </div>
 
-                <div className="p-3 border-t-4 border-cyan-400 bg-black rounded-b-lg">
+                <div className="p-3 border-t-4 border-cyan-400 bg-black">
                   <div className="pixel-font text-[8px] text-lime-400 text-center glow-green">
                     {onlineUsers.length} USER{onlineUsers.length !== 1 ? 'S' : ''} [ACTIVE]
                   </div>
                 </div>
+                </div>
               </div>
+              
+              {/* Toggle Button - Always visible, higher z-index than sidebar */}
+              <button
+                onClick={() => setShowSidebar(!showSidebar)}
+                className={`
+                  lg:hidden fixed top-1/2 -translate-y-1/2 z-50 
+                  w-5 h-10 bg-black border-2 border-cyan-400 
+                  text-cyan-400 hover:bg-cyan-400 hover:text-black 
+                  pixel-button flex items-center justify-center rounded-r text-xs
+                  transition-all duration-300 ease-in-out
+                  shadow-[4px_4px_0_rgba(0,255,255,0.5)]
+                  ${showSidebar ? 'left-64' : 'left-0'}
+                `}
+                style={{ borderLeftWidth: '0' }}
+              >
+                {showSidebar ? <ChevronLeft size={12} /> : <ChevronRight size={12} />}
+              </button>
 
-              <div className="flex-1 bg-gradient-to-b from-gray-900 to-black border-4 border-cyan-400 shadow-[8px_8px_0_rgba(0,255,255,0.5)] rounded-xl flex flex-col min-h-0">
+              {/* Chat Area - Flex grow on desktop, full width on mobile */}
+              <div className="flex-1 bg-gradient-to-b from-gray-900 to-black border-4 border-cyan-400 shadow-[8px_8px_0_rgba(0,255,255,0.5)] rounded-xl flex flex-col min-h-0 overflow-hidden lg:ml-4">
                 {isGroupChat || activeChat ? (
                   <>
                     <div className="bg-black p-4 border-b-4 border-cyan-400 rounded-t-lg">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-black border-4 border-lime-400 rounded flex items-center justify-center text-xl">
-                          {isGroupChat ? '🌐' : '👾'}
+                          {isGroupChat ? '🌐' : activeRoom ? '🏠' : '👾'}
                         </div>
                         <div>
                           <div className="pixel-font text-[10px] text-lime-400 glow-green">
-                            &gt; {isGroupChat ? 'MAIN_CHAT' : activeChat}
+                            &gt; {
+                              isGroupChat 
+                                ? 'MAIN_CHAT' 
+                                : activeRoom 
+                                  ? (customRooms.find(r => r.id === activeRoom)?.name || 'ROOM') 
+                                  : activeChat
+                            }
                           </div>
                           <div className="text-[8px] text-cyan-400 mt-1">
-                            {isGroupChat ? `[${onlineUsers.length + 1}_MEMBERS]` : '● [CONNECTED]'}
+                            {isGroupChat 
+                              ? `[${onlineUsers.length + 1}_MEMBERS]` 
+                              : activeRoom 
+                                ? `[${customRooms.find(r => r.id === activeRoom)?.memberCount || 0}_MEMBERS]`
+                                : '● [CONNECTED]'
+                            }
                           </div>
                         </div>
                       </div>
@@ -770,9 +979,38 @@
                       <div ref={messagesEndRef} />
                     </div>
 
-                    <div className="p-4 bg-black border-t-4 border-cyan-400 rounded-b-lg">
+                    <div className="p-4 bg-black border-t-4 border-cyan-400 rounded-b-lg relative">
+                      {/* Emoji Picker Popup */}
+                      {showEmojiPicker && (
+                        <div className="absolute bottom-full left-0 mb-2 w-80 h-64 bg-black border-4 border-cyan-400 rounded-lg shadow-[8px_8px_0_rgba(0,255,255,0.5)] overflow-hidden z-50">
+                          <div className="flex justify-between items-center p-2 border-b-2 border-cyan-400">
+                            <div className="pixel-font text-[10px] text-cyan-400 glow">SELECT_EMOJI:</div>
+                            <button
+                              onClick={() => setShowEmojiPicker(false)}
+                              className="text-cyan-400 hover:text-lime-400"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-8 gap-1 p-2 h-[calc(100%-2.5rem)] overflow-y-auto">
+                            {emojis.map((emoji, i) => (
+                              <button
+                                key={i}
+                                onClick={() => insertEmoji(emoji)}
+                                className="text-2xl p-2 hover:scale-110 transition-transform"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="flex gap-2">
-                        <button className="p-2 bg-black border-2 border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black pixel-button rounded">
+                        <button 
+                          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                          className="p-2 bg-black border-2 border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black pixel-button rounded"
+                        >
                           <Smile size={20} />
                         </button>
                         <input
@@ -812,6 +1050,68 @@
                 ▂▃▅▇█▓▒░ [TRANSMISSION_ACTIVE] ░▒▓█▇▅▃▂
               </div>
             </div>
+            
+            {/* Create Room Modal */}
+            {showCreateRoom && (
+              <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                <div className="bg-gradient-to-b from-gray-900 to-black border-4 border-cyan-400 rounded-xl shadow-[8px_8px_0_rgba(0,255,255,0.5)] max-w-md w-full p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="pixel-font text-lg text-cyan-400 glow">[CREATE_ROOM]</h2>
+                    <button
+                      onClick={() => {
+                        setShowCreateRoom(false);
+                        setNewRoomName('');
+                      }}
+                      className="text-cyan-400 hover:text-red-500"
+                    >
+                      <X size={24} />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="pixel-font text-[10px] text-cyan-400 mb-2 block">ROOM_NAME:</label>
+                      <input
+                        type="text"
+                        value={newRoomName}
+                        onChange={(e) => setNewRoomName(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && newRoomName.trim()) {
+                            createRoom();
+                          }
+                        }}
+                        placeholder="Enter room name..."
+                        className="w-full px-4 py-2 bg-black border-4 border-cyan-400 text-cyan-400 placeholder-cyan-400/50 pixel-font text-xs focus:outline-none focus:border-lime-400 rounded glow"
+                        maxLength={30}
+                        autoFocus
+                      />
+                      <div className="text-[8px] text-cyan-400/70 mt-2 pixel-font">
+                        Room will be created with you as the first member.
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setShowCreateRoom(false);
+                          setNewRoomName('');
+                        }}
+                        className="flex-1 px-4 py-2 bg-black border-4 border-red-500 text-red-500 hover:bg-red-500 hover:text-black pixel-button rounded-lg pixel-font text-xs"
+                      >
+                        [CANCEL]
+                      </button>
+                      <button
+                        onClick={createRoom}
+                        disabled={!newRoomName.trim()}
+                        className="flex-1 px-4 py-2 bg-black border-4 border-lime-400 text-lime-400 hover:bg-lime-400 hover:text-black pixel-button rounded-lg pixel-font text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        [CREATE]
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       );
