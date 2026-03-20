@@ -142,7 +142,6 @@
 
     const PixelMessenger = () => {
       const [username, setUsername] = useState('');
-      const [selectedFlag, setSelectedFlag] = useState('🌍');
       const [isLoggedIn, setIsLoggedIn] = useState(false);
       const [activeChat, setActiveChat] = useState(null);
       const [isGroupChat, setIsGroupChat] = useState(true);
@@ -184,8 +183,7 @@
             setConnectionError(false);
             websocket.send(JSON.stringify({
               type: 'login',
-              username: username,
-              flag: selectedFlag
+              username: username
             }));
           };
 
@@ -518,29 +516,6 @@
                   className="w-full px-4 py-3 bg-[#ffe066] border-4 border-black text-black placeholder-black/50 pixel-font text-xs focus:outline-none focus:border-[#ff6b9d] rounded"
                   maxLength={20}
                 />
-                
-                {/* Flag Selector */}
-                <div>
-                  <div className="text-[10px] text-black mb-2 pixel-font font-bold">SELECT FLAG:</div>
-                  <div className="grid grid-cols-8 gap-2">
-                    {['🌍', '🇺🇸', '🇬🇧', '🇩🇪', '🇫🇷', '🇪🇸', '🇮🇹', '🇯🇵', '🇨🇳', '🇰🇷', '🇧🇷', '🇲🇽', '🇨🇦', '🇦🇺', '🇮🇳', '🇷🇺'].map((flag) => (
-                      <button
-                        key={flag}
-                        type="button"
-                        onClick={() => setSelectedFlag(flag)}
-                        className={`
-                          text-2xl p-2 border-2 rounded pixel-button
-                          ${selectedFlag === flag 
-                            ? 'border-[#ff6b9d] bg-[#ff6b9d]/20' 
-                            : 'border-black bg-[#ffe066] hover:border-[#ff6b9d]'
-                          }
-                        `}
-                      >
-                        {flag}
-                      </button>
-                    ))}
-                  </div>
-                </div>
                 
                 <button
                   type="submit"
