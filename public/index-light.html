@@ -196,7 +196,7 @@
                 break;
                 
               case 'users':
-                setOnlineUsers(data.users.filter(u => u.username !== username));
+                setOnlineUsers(data.users.filter(u => u !== username));
                 break;
                 
               case 'groupMessage':
