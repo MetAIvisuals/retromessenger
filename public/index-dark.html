@@ -824,7 +824,12 @@
                         <div className="text-center text-cyan-400 text-sm p-8">
                           <div className="glow">[CHANNEL_OPEN]</div>
                           <div className="text-xs mt-2 text-cyan-400/70">
-                            {isGroupChat ? 'Start transmission...' : `Connected to ${activeChat}...`}
+                            {isGroupChat 
+                              ? 'Start transmission...' 
+                              : activeRoom 
+                                ? `Connected to ${customRooms.find(r => r.id === activeRoom)?.name || 'ROOM'}...`
+                                : `Connected to ${activeChat}...`
+                            }
                           </div>
                         </div>
                       ) : (
