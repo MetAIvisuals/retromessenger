@@ -478,6 +478,25 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     if (username) {
+      // Remove user from all custom rooms
+      customRooms.forEach((room, roomId) => {
+        if (room.members.has(username)) {
+          room.members.delete(username);
+          
+          // Delete room if empty
+          if (room.members.size === 0) {
+            customRooms.delete(roomId);
+            broadcast({
+              type: 'roomDeleted',
+              roomId: roomId
+            });
+          } else {
+            // Update room list for remaining members
+            broadcastRooms();
+          }
+        }
+      });
+      
       clients.delete(username);
       if (sessionId) {
         sessions.delete(sessionId);
