@@ -688,23 +688,23 @@
                   ) : (
                     onlineUsers.map((user) => (
                       <button
-                        key={user.username}
-                        onClick={() => selectChat(user.username)}
+                        key={user}
+                        onClick={() => selectChat(user)}
                         className={`w-full p-3 mb-2 border-4 border-black transition-all pixel-button rounded-lg relative ${
-                          activeChat === user.username && !isGroupChat ? 'bg-[#ffe066]' : 'bg-[#ffa94d] hover:bg-[#ffbe7a]'
+                          activeChat === user && !isGroupChat ? 'bg-[#ffe066]' : 'bg-[#ffa94d] hover:bg-[#ffbe7a]'
                         }`}
                       >
-                        {unreadCounts[user.username] > 0 && (
+                        {unreadCounts[user] > 0 && (
                           <div className="absolute -top-2 -right-2 bg-red-500 border-2 border-black rounded-full w-6 h-6 flex items-center justify-center">
                             <span className="text-white text-[10px] font-bold">
-                              {unreadCounts[user.username] > 9 ? '9+' : unreadCounts[user.username]}
+                              {unreadCounts[user] > 9 ? '9+' : unreadCounts[user]}
                             </span>
                           </div>
                         )}
                         <div className="flex items-center gap-2">
-                          <div className="text-2xl">{user.flag || '👤'}</div>
+                          <div className="text-2xl">👤</div>
                           <div className="flex-1 text-left">
-                            <div className="text-[10px] pixel-font text-black break-all">{user.username}</div>
+                            <div className="text-[10px] pixel-font text-black break-all">{user}</div>
                             <div className="flex items-center gap-1 mt-1">
                               <div className="w-2 h-2 border border-black bg-[#4ade80] rounded-full"></div>
                               <span className="text-[8px] text-black">ONLINE</span>
