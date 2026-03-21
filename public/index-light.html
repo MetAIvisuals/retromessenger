@@ -161,6 +161,7 @@
       const [activeRoom, setActiveRoom] = useState(null);
       const [roomMessages, setRoomMessages] = useState({});
       const [newRoomName, setNewRoomName] = useState('');
+      const [userColors, setUserColors] = useState({});
       const [errorMessage, setErrorMessage] = useState('');
       const messagesEndRef = useRef(null);
 
@@ -168,6 +169,43 @@
 
       const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      };
+
+      // Generate darker color for light theme based on username
+      const getColorForUser = (username) => {
+        if (userColors[username]) {
+          return userColors[username];
+        }
+        
+        // Darker colors that work on light backgrounds
+        const colors = [
+          '#dc2626', // red
+          '#ea580c', // orange-red
+          '#d97706', // amber
+          '#65a30d', // lime
+          '#059669', // emerald
+          '#0891b2', // cyan
+          '#0284c7', // sky blue
+          '#2563eb', // blue
+          '#4f46e5', // indigo
+          '#7c3aed', // violet
+          '#9333ea', // purple
+          '#c026d3', // fuchsia
+          '#db2777', // pink
+          '#be123c', // rose
+          '#b91c1c', // dark red
+        ];
+        
+        // Simple hash function for username
+        let hash = 0;
+        for (let i = 0; i < username.length; i++) {
+          hash = username.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const colorIndex = Math.abs(hash) % colors.length;
+        const color = colors[colorIndex];
+        
+        setUserColors(prev => ({ ...prev, [username]: color }));
+        return color;
       };
 
       useEffect(() => {
@@ -781,22 +819,31 @@
                           }
                         </div>
                       ) : (
-                        currentMessages.map((msg, idx) => (
+                        currentMessages.map((msg, idx) => {
+                          const userColor = msg.from === username ? '#d97706' : getColorForUser(msg.from);
+                          return (
                           <div key={idx} className={`flex ${msg.from === username ? 'justify-end' : 'justify-start'}`}>
                             <div
-                              className={`max-w-[70%] p-3 border-4 border-black shadow-[4px_4px_0_rgba(0,0,0,0.3)] rounded-lg ${
+                              className={`max-w-[70%] p-3 border-4 rounded-lg ${
                                 msg.from === username ? 'bg-[#ffe066]' : 'bg-[#ffa94d]'
                               }`}
+                              style={{
+                                borderColor: userColor,
+                                boxShadow: `4px 4px 0 ${userColor}40`
+                              }}
                             >
-                              <div className="text-[10px] font-bold text-black mb-2 pixel-font flex items-center gap-2">
+                              <div className="text-[10px] font-bold mb-2 pixel-font flex items-center gap-2"
+                                style={{ color: userColor }}
+                              >
                                 <span>{msg.from}</span>
                                 <span className="text-black/50">•</span>
-                                <span className="text-[8px] text-black/70">{msg.time}</span>
+                                <span className="text-[8px] text-black/60">{msg.time}</span>
                               </div>
                               <div className="text-sm text-black break-words">{msg.text}</div>
                             </div>
                           </div>
-                        ))
+                          );
+                        })
                       )}
                       <div ref={messagesEndRef} />
                     </div>
